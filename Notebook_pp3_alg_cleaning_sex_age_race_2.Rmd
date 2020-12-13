@@ -1,0 +1,165 @@
+---
+title: "test_code_alg"
+author: "Armelle Le Guelte"
+date: "12/8/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+# Load the censusapi library
+library(censusapi)
+
+# Load other data-cleaning libraries
+library(tidyr)
+library(stringr)
+library(dplyr)
+```
+
+```{r}
+# Create a new dataframe to store the metadata for the 2018 ACS 5-year dataset
+acs5_vars2 <- listCensusMetadata(
+ name = "acs/acs5",
+ vintage = "2018",
+ type = "variables"
+)
+```
+
+```{r}
+# Count the number of times '!!' shows up as a separator in the `label` field
+max(str_count(acs5_vars2$label, "!!"))
+
+#nb it shows 7 times so I will need to make 8 columns
+
+# Split the 'label' columns into 8 columns and keep the 'label' column
+acs5_vars2 <- acs5_vars2 %>%
+     separate(
+     label,
+     c('label1', 'label2', 'label3', 'label4', 'label5', 'label6', 'label7', 'label8'),
+     sep = "!!",
+     remove = FALSE,
+     convert = FALSE
+     )
+```
+```{r}
+
+# Create a list of the label_02 values we want to filter on
+label3_vars_interest <- c('B01001A',
+'B01001B', "B01001C", "B01001D", "B01001E", "B01001G", "B01001H", "B01001I"
+)
+
+# Create a new dataframe with the variables we want
+ppl3_acs5_vars2 <- acs5_vars2 %>% 
+        filter(group %in% label3_vars_interest)
+```
+
+```{r}
+# Make a list of ppl3_acs5_vars table
+ppl3_names_list2 <- ppl3_acs5_vars2$name
+#View(ppl3_names_list2)
+
+# Get acs5 from censusapi
+acs5_data2 <- getCensus(
+        name = "acs/acs5",
+        vintage = "2018",
+        region = "metropolitan statistical area/micropolitan statistical area:34980, 16860, 28940, 32820",
+        vars = ppl3_names_list2
+)
+```
+
+
+```{r}
+# Pivot the dataframe so there aren't hundreds of columns
+acs5_data2 <- pivot_longer(
+        acs5_data2,
+        cols = starts_with("B0"),
+        names_to = "name",
+        values_to = "value"
+)
+```
+
+
+```{r}
+# Join acs5_data to the variables from metadata to get all of the labels information
+acs5_data2 <-
+        inner_join(acs5_data2, ppl3_acs5_vars2, by = "name", copy = FALSE)
+```
+
+
+```{r}
+# remove not necessary columns 
+acs5_sex_race <- acs5_data2 %>% 
+  select(-c(label,label1, label2, label5, label6, label7, label8, predicateType, limit, attributes, required))
+
+```
+
+```{r}
+# remove name for a new data to use for r shinny
+acs5_sex_race2 <- acs5_sex_race %>% 
+  select(-c(name, group))
+```
+
+
+```{r}
+# Pivot the data to get age as columns
+acs5_data_sex_race_age <- pivot_wider(
+        acs5_sex_race2,
+        names_from = "label4",
+        values_from = "value"
+)
+```
+
+```{r}
+# Rename NA column as Total population and label3 as Sex
+acs5_data_sex_race_age <- acs5_data_sex_race_age %>% 
+  rename(total = "NA", sex = "label3")
+
+```
+
+```{r}
+# Reorder the columns
+acs5_data_sex_race_age <- acs5_data_sex_race_age[, c("concept", "sex", "total", "Under 5 years", "5 to 9 years", "10 to 14 years", "15 to 17 years", "18 and 19 years", "20 to 24 years", "25 to 29 years", "30 to 34 years", "35 to 44 years", "45 to 54 years", "55 to 64 years", "65 to 74 years",  "75 to 84 years", "85 years and over","metropolitan_statistical_area_micropolitan_statistical_area")]
+```
+
+```{r}
+# Change NA value in Sex column with total
+acs5_data_sex_race_age$sex[which(is.na(acs5_data_sex_race_age$sex))] <- "Total"
+
+```
+
+```{r}
+# remove the first 3 words and open parenthesis in concept column
+acs5_data_sex_race_age$concept <- gsub("^.{0,12}", "", acs5_data_sex_race_age$concept)
+
+#remove parenthesis at the end of concept
+acs5_data_sex_race_age$concept <-gsub('.{1}$', '', acs5_data_sex_race_age$concept)
+
+#Rename concept as race
+acs5_data_sex_race_age <- acs5_data_sex_race_age %>% 
+  rename(race = "concept")
+```
+
+```{r}
+# Replace NA values with 0
+#acs5_data2_sex_race_age <-acs5_data2_sex_race_age %>% 
+#  replace(is.na(.), 0)
+```
+
+```{r}
+# Remove white alone not hispanic
+acs5_data_sex_race_age <- acs5_data_sex_race_age[!(acs5_data_sex_race_age$race == "WHITE ALONE, NOT HISPANIC OR LATINO"), ]
+  
+```
+
+
+```{r}
+# Save it as a csv file
+write.csv(acs5_data_sex_race_age, "data/acs5y2018sex_age_race.csv", row.names = FALSE)
+```
+
+

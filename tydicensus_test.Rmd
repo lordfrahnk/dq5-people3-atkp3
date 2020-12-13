@@ -1,0 +1,29 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Choosing the data  
+
+``` {r}
+# Load the censusapi library
+library(tidycensus)
+
+# Load other data-cleaning libraries
+library(tidyr)
+library(stringr)
+library(dplyr)
+```
+
+```{r}
+var2018 <- load_variables(2018, "acs5", cache = TRUE)
+```
+
+```{r}
+sex_by_age <- filter(v)
+```
+

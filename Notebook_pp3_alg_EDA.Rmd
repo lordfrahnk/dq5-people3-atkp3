@@ -1,0 +1,78 @@
+---
+title: "Notebook_pp3_alg_EAD"
+author: "Armelle Le Guelte"
+date: "12/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(tigris)
+library(mapview)
+```
+
+
+```{r}
+acs5_sex <- read_csv('data/acs5y2018sex_age_race.csv')
+```
+
+```{r}
+
+```
+
+
+```{r}
+tn_counties <- counties(state = "TN")
+plot(tn_counties)
+```
+
+
+
+
+```{r}
+tn_davidson <- tracts(state = "TN", county = "Davidson", cb = TRUE, year = 2018)
+plot(tn_davidson$geometry)
+```
+
+
+```{r}
+acs5_sex_age <- acs5 %>% 
+  filter(label2 == "SEX AND AGE") %>% 
+  filter(label1 == "Estimate")
+```
+
+```{r}
+acs5_race <- acs5 %>% 
+  filter(label2 == "RACE") %>% 
+  filter(label1 == "Estimate") %>% 
+  select(-c(label, label7, label8, concept, group, limit, attributes, required))
+```
+```
+```{r}
+
+acs5_ancestry <- acs5 %>% 
+  filter(label2 == "ANCESTRY") %>% 
+  filter(label1 == "Estimate") %>% 
+  select(-c(label, label5, label6, label7, label8, concept, group, limit, attributes, required))
+```
+
+```{r}
+acs5_education <- acs5 %>% 
+  filter(label2 == "EDUCATIONAL ATTAINMENT") %>% 
+  filter(label1 == "Estimate") %>% 
+  select(-c(label, label5, label6, label7, label8, concept, group, limit, attributes, required))
+  
+```
+
+```{r}
+acs5_sex_age_race <- read_csv('data/acs5y2018sex_age_race.csv')
+```
+
+

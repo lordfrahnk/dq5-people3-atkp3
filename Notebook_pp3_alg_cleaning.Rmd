@@ -73,7 +73,7 @@ cleaned_acs1 <- acs1 %>%
 
 ```{r}
 #save as a csv file
-write.csv(cleaned_acs1, "data/acs_1y_2019.csv", row.names = FALSE)
+#write.csv(cleaned_acs1, "data/acs_1y_2019.csv", row.names = FALSE)
 ```
 
 ### Test on asc5 data 2018
@@ -90,6 +90,7 @@ acs5vars <- listCensusMetadata(
 head(acs5_2018)
 
 ```
+
 ```{r}
 #Get age, sex and race
 #Estimate 2014-2018
@@ -177,7 +178,8 @@ View(acs5_label2)
 label2_vars_interest <- c('ANCESTRY',
 'RACE',
 'EDUCATIONAL ATTAINMENT',
-'SEX AND AGE'
+'HISPANIC OR LATINO AND RACE',
+'Race alone or in combination with one or more other races'
 )
 
 # Create a new dataframe with the variables we want
@@ -197,8 +199,7 @@ View(ppl3_names_list)
 acs5_data <- getCensus(
         name = "acs/acs5/profile",
         vintage = "2018",
-        region = "county:037",
-        regionin = "state:47",
+        region = "metropolitan statistical area/micropolitan statistical area:34980, 16860, 28940, 32820",
         vars = ppl3_names_list
 )
 
@@ -225,6 +226,3 @@ acs5_data <-
 write.csv(acs5_data, "data/acs_5y_2018_data.csv", row.names = FALSE)
 ```
 
-### How to delete columns using dplyr
-
-select(Your_Dataframe, -c(X, Y)
