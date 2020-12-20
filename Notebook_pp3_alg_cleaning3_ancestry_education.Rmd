@@ -112,6 +112,7 @@ acs5_education2 <- acs5_education2[, c("metropolitan_statistical_area_micropolit
 ```
 
 ```{r}
+# remove variables
 acs5_education2 <- acs5_education2[!(acs5_education2$education == "Bachelor's degree or higher"), ]
 acs5_education2 <- acs5_education2[!(acs5_education2$education == "High school graduate or higher"), ]
 ```

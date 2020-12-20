@@ -1,5 +1,5 @@
 ---
-title: "test_code_alg"
+title: "cleaning_sex_age_race_alg"
 author: "Armelle Le Guelte"
 date: "12/8/2020"
 output: html_document
@@ -50,7 +50,7 @@ acs5_vars2 <- acs5_vars2 %>%
 
 # Create a list of the label_02 values we want to filter on
 label3_vars_interest <- c('B01001A',
-'B01001B', "B01001C", "B01001D", "B01001E", "B01001G", "B01001H", "B01001I"
+'B01001B', "B01001C", "B01001D", "B01001E", "B01001F","B01001G", "B01001I"
 )
 
 # Create a new dataframe with the variables we want
