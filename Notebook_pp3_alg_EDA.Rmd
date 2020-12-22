@@ -1,0 +1,252 @@
+---
+title: "Notebook_pp3_alg_EAD"
+author: "Armelle Le Guelte"
+date: "12/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(dplyr)
+# map
+library(tigris)
+library(mapview)
+library(sf)
+# To get rid of the scientific notation on the labels.
+library(scales)
+```
+
+
+```{r}
+acs5_sex_age_race <- read_csv('data/acs5y2018sex_age_race.csv')
+acs5_education <-read_csv(('data/acs5y2018education2.csv'))
+
+```
+
+### Plot sex, age and race
+
+```{r}
+acs5_sex_age_race <- acs5_sex_age_race %>% 
+  rename(metropolitan_area = "metropolitan_statistical_area_micropolitan_statistical_area", estimate = "total")
+```
+
+
+```{r}
+acs5_sex_age_race$metropolitan_area[acs5_sex_age_race$metropolitan_area  == "28940"]  <-  "Knoxville"
+acs5_sex_age_race$metropolitan_area[acs5_sex_age_race$metropolitan_area  == "32820"]  <-  "Memphis"
+acs5_sex_age_race$metropolitan_area[acs5_sex_age_race$metropolitan_area  == "34980"]  <-  "Nashville"
+acs5_sex_age_race$metropolitan_area[acs5_sex_age_race$metropolitan_area  == "16860"]  <-  "Chattanooga"
+```
+
+
+```{r}
+# Save it as a csv file
+write.csv(acs5_sex_age_race, "data/acs5y2018sex_age_race_metro.csv", row.names = FALSE)
+```
+
+
+### Sex by metro area (fixed!!!)
+
+```{r}
+acs5_sex <- acs5_sex_age_race %>% 
+ select(-c("race", "Under 5 years", "5 to 9 years", "10 to 14 years", "15 to 17 years", "18 and 19 years", "20 to 24 years", "25 to 29 years", "30 to 34 years", "35 to 44 years", "45 to 54 years", "55 to 64 years", "65 to 74 years",  "75 to 84 years", "85 years and over"))
+
+```
+
+```{r}
+acs5_sex <- acs5_sex %>% 
+  group_by(metropolitan_area, sex) %>% 
+  filter(sex != "Total") %>% 
+  summarise(gender = sum(estimate))
+```
+
+```{r}
+# Save it as a csv file
+write.csv(acs5_sex, "data/acs5y2018sex_metro.csv", row.names = FALSE)
+```
+
+
+```{r}
+acs5_sex %>% 
+  group_by(metropolitan_area) %>% 
+  ggplot(aes(x=gender, y= sex)) +
+    geom_col(color = 'black') +
+    scale_x_continuous(labels = comma) +
+  labs(x="2018 ACS estimate",
+       y="",
+      title = 'Gender by Metro Area') +
+    facet_wrap(~ metropolitan_area)
+```
+### Age groups per metro area (sum for each column not working!!)
+
+```{r}
+acs5_sex_age <- acs5_sex_age_race %>% 
+  filter(sex != "Total") %>% 
+  select(-c("race"))
+```
+
+```{r}
+acs5_sex_age <- acs5_sex_age %>% 
+  group_by(metropolitan_area, sex) %>% 
+  summarise_all(.colSums())
+```
+
+```{r}
+acs5_sex_age <- acs5_sex_age %>% 
+  group_by(metropolitan_area, sex) %>% 
+  summarise(sum(estimate), sum("Under 5 years"), sum("5 to 9 years"), sum("10 to 14 years"), sum( "15 to 17 years"), sum("18 and 19 years"), sum("20 to 24 years"), sum("25 to 29 years"), sum("30 to 34 years"), sum("35 to 44 years"), sum("45 to 54 years"), sum("55 to 64 years"), sum("65 to 74 years"),  sum("75 to 84 years"), sum("85 years and over"))
+```
+
+
+```{r}
+
+```
+
+### Race by metro area
+
+```{r}
+acs5_race <- acs5_sex_age_race %>% 
+  filter(sex == "Total") %>% 
+  select(-c("sex", "Under 5 years", "5 to 9 years", "10 to 14 years", "15 to 17 years", "18 and 19 years", "20 to 24 years", "25 to 29 years", "30 to 34 years", "35 to 44 years", "45 to 54 years", "55 to 64 years", "65 to 74 years",  "75 to 84 years", "85 years and over"))  
+  
+```
+
+```{r}
+# Calculate the percentage per race by metro area
+acs5_race <- acs5_race %>% 
+  group_by(metropolitan_area) %>% 
+  mutate(percent_estimate = (estimate *100/sum(estimate)))
+```
+
+```{r}
+# reorder columns
+acs5_race <- acs5_race[, c("metropolitan_area", "race", "estimate", "percent_estimate")]
+
+```
+
+```{r}
+# Save it as a csv file
+write.csv(acs5_race, "data/acs5y2018race_metro.csv", row.names = FALSE)
+```
+
+
+```{r}
+acs5_race %>% 
+  group_by(metropolitan_area) %>% 
+  ggplot(aes(x=estimate, y= race)) +
+    geom_col(color = 'black') +
+    scale_x_continuous(labels = comma) +
+  labs(x="2018 ACS estimate",
+       y="",
+      title = 'Race by Metro Area') +
+    facet_wrap(~ metropolitan_area)
+```
+
+
+### Plot education
+
+```{r}
+acs5_education$metropolitan_statistical_area_micropolitan_statistical_area[acs5_education$metropolitan_statistical_area_micropolitan_statistical_area  == "28940"]  <-  "Knoxville"
+acs5_education$metropolitan_statistical_area_micropolitan_statistical_area[acs5_education$metropolitan_statistical_area_micropolitan_statistical_area  == "32820"]  <-  "Memphis"
+acs5_education$metropolitan_statistical_area_micropolitan_statistical_area[acs5_education$metropolitan_statistical_area_micropolitan_statistical_area  == "34980"]  <-  "Nashville"
+acs5_education$metropolitan_statistical_area_micropolitan_statistical_area[acs5_education$metropolitan_statistical_area_micropolitan_statistical_area  == "16860"]  <-  "Chattanooga"
+```
+
+```{r}
+acs5_education_metro <- acs5_education %>% 
+  filter(education != "Total")
+```
+
+```{r}
+acs5_education_metro <- acs5_education_metro %>% 
+  rename(metropolitan_area = "metropolitan_statistical_area_micropolitan_statistical_area")
+```
+
+```{r}
+# Save it as a csv file
+write.csv(acs5_education_metro, "data/acs5_education_metro.csv", row.names = FALSE)
+```
+
+```{r}
+acs5_education_metro <-read_csv(('data/acs5_education_metro.csv'))
+```
+
+
+```{r}
+
+acs5_education_metro %>% 
+  #group_by(metropolitan_statistical_area_micropolitan_statistical_area) %>% 
+  #filter(education != "Total") %>% 
+  ggplot(aes(x=estimate, y= reorder(education, estimate))) +
+    geom_col(color = 'black') +
+    scale_x_continuous(labels = comma) +
+  labs(x="2018 ACS estimate",
+       y="",
+      title = 'Education Attainment by Metro Area') +
+    facet_wrap(~ metropolitan_area)
+```
+
+
+
+### map of races (Davidson only)
+
+```{r}
+library(tidycensus)
+
+#census_api_key("26fef66358b5e4b77e4aa7d7ae9502596b475bf7", overwrite = TRUE)
+
+race_vars <- c(White = "B01001A_001E", Black = "B01001B_001E", Hispanic= "B01001I_001E", Native = "B01001C_001E", Asian = "B01001D_001E", HIPI = "B01001E_001E")
+# "Some other race alone" = "B01001F_001E", "Two or more races" = "B01001G_001E"
+
+tn_race <- get_acs(geography = "tract",
+                   state= "TN",
+                   county = "Davidson",
+                   variables = race_vars,
+                   geometry = TRUE)
+```
+
+```{r}
+# Join tn_race to race_vars
+tn_race$name <- c(White = "B01001A_001E", Black = "B01001B_001E", Hispanic= "B01001I_001E", Native = "B01001C_001E", Asian = "B01001D_001E", HIPI = "B01001E_001E")
+```
+
+```{r}
+tn_race$variable[tn_race$variable  == "B01001A_001"]  <-  "White"
+tn_race$variable[tn_race$variable  == "B01001B_001"]  <-  "Black"
+tn_race$variable[tn_race$variable  == "B01001I_001"]  <-  "Hispanic"
+tn_race$variable[tn_race$variable  == "B01001C_001"]  <-  "Native"
+tn_race$variable[tn_race$variable  == "B01001D_001"]  <-  "Asian"
+tn_race$variable[tn_race$variable  == "B01001E_001"]  <-  "HIPI"
+
+```
+
+```{r}
+# Save it as a csv file
+write.csv(tn_race, "data/acs5_race_geo_davidson.csv", row.names = FALSE)
+```
+
+```{r}
+ggplot(tn_race, aes(fill = estimate, color = estimate)) +
+geom_sf() +
+  scale_fill_viridis_c() +
+scale_color_viridis_c() +
+coord_sf(datum = NA) +
+facet_wrap(~variable)
+```
+
+
+```{r}
+#tn_counties <- counties(state = "TN")
+#plot(tn_counties)
+```
+
+```{r}
+tn_davidson <- tracts(state = "TN", county = "Davidson", cb = TRUE, year = 2018)
+plot(tn_davidson$geometry)
+```
+
+

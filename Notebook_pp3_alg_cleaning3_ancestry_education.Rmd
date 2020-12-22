@@ -1,0 +1,125 @@
+---
+title: "Notebook_pp3_alg_EAD"
+author: "Armelle Le Guelte"
+date: "12/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(tidyr)
+library(stringr)
+library(dplyr)
+library(tigris)
+library(mapview)
+```
+
+
+```{r}
+acs5 <- read_csv('data/acs_5y_2018_data.csv')
+```
+
+# Getting and cleaning Ancestry data
+```{r}
+
+acs5_ancestry <- acs5 %>% 
+  filter(label2 == "ANCESTRY") %>% 
+  select(-c(label, label2, label3, label5, label6, label7, label8, concept, group, limit, attributes, required, predicateType))
+```
+
+```{r}
+# Rename columns 
+acs5_ancestry <- acs5_ancestry %>% 
+  rename(ancestry = "label4")
+```
+
+
+```{r}
+# Change NA value in ancestry column with total
+acs5_ancestry$ancestry[which(is.na(acs5_ancestry$ancestry))] <- "Total"
+```
+
+```{r}
+# Remove NA in value column
+acs5_ancestry <- acs5_ancestry[!is.na(acs5_ancestry$value), ]
+```
+
+```{r}
+acs5_ancestry2 <- acs5_ancestry %>% 
+  select(-c(name))
+
+# Pivot the data to get age as columns
+acs5_ancestry2 <- pivot_wider(
+        acs5_ancestry2,
+        names_from = "label1",
+        values_from = "value"
+)
+```
+
+```{r}
+# Save it as a csv file
+write.csv(acs5_ancestry2, "data/acs5y2018ancestry2.csv", row.names = FALSE)
+```
+
+
+# Getting and cleaning education data
+```{r}
+acs5_education <- acs5 %>% 
+  filter(label2 == "EDUCATIONAL ATTAINMENT") %>% 
+  select(-c(label, label2, label3, predicateType, label5, label6, label7, label8, concept, group, limit, attributes, required))
+  
+```
+
+```{r}
+# Rename columns 
+acs5_education <- acs5_education %>% 
+  rename(education = "label4")
+```
+
+```{r}
+# Change NA value in education column with total
+acs5_education$education [which(is.na(acs5_education$education))] <- "Total"
+```
+
+```{r}
+# Remove NA in value column
+acs5_education <- acs5_education[!is.na(acs5_education$value), ]
+```
+
+```{r}
+acs5_education2 <- acs5_education %>% 
+  select(-c(name))
+
+# Pivot the data to get age as columns
+acs5_education2 <- pivot_wider(
+        acs5_education2,
+        names_from = "label1",
+        values_from = "value"
+)
+```
+
+```{r}
+# Rename columns
+acs5_education2 <- acs5_education2 %>% 
+  rename(estimate = "Estimate", percent_estimate = "Percent Estimate")
+
+# Reorder the columns
+acs5_education2 <- acs5_education2[, c("metropolitan_statistical_area_micropolitan_statistical_area" ,"education", "estimate", "percent_estimate")]
+```
+
+```{r}
+# remove variables
+acs5_education2 <- acs5_education2[!(acs5_education2$education == "Bachelor's degree or higher"), ]
+acs5_education2 <- acs5_education2[!(acs5_education2$education == "High school graduate or higher"), ]
+```
+
+
+```{r}
+# Save it as a csv file
+write.csv(acs5_education2, "data/acs5y2018education2.csv", row.names = FALSE)
+```
+
