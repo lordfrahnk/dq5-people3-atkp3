@@ -1,0 +1,189 @@
+---
+title: "Notebook_pp3_alg_combining_variables"
+author: "Armelle Le Guelte"
+date: "12/15/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(dplyr)
+```
+
+
+```{r}
+acs1_race <-read_csv(('data/race_Taylor.csv')) 
+acs1_sex_age <- read_csv(('data/sex_by_age_Taylor.csv'))
+acs1_sex_age2 <- read_csv(('data/sex_by_age.csv')) # need to remove it after
+acs5_sex_age_race <- read_csv('data/acs5y2018sex_age_race.csv')
+acs5_education <-read_csv(('data/acs5y2018education2.csv'))
+```
+
+# Need to put all the data in the same format to use it in the app
+# I don't have Name for Metro area and we will use this but I do have metro area numbers
+# For a matter of time we decided to pivot the data longer (It was supposed to be wider but it make it a little more complicated to plot the data with ggplot)
+# I think to make it work (in wider format) we need to include "pivot_longer" in the formula to plot the data
+
+```{r}
+# Make a new dataframe with Metro area and Name
+geo_id_info <- acs1_race %>% 
+  select(-c("Total", "White alone", "Black or African American alone", "American Indian and Alaska Native alone", "Some other race alone", "Two or more races:", "Two races including Some other race", "Two races excluding Some other race, and three or more races", "Asian alone", "Native Hawaiian and Other Pacific Islander alone", "GEO_ID"))
+```
+
+### Cleaning education file
+
+```{r}
+# Join education with geo_id_info
+acs5_education <-
+        inner_join(acs5_education, geo_id_info, by = "metropolitan_statistical_area_micropolitan_statistical_area", copy = FALSE)
+```
+
+```{r}
+# Change total percentage for 100 because it the estimate number for some weird reason
+acs5_education$percent_estimate[acs5_education$percent_estimate > 100] <- 100
+
+```
+
+# I talked to the group and we won't use percentage in the dataframe
+
+```{r}
+#Remove percentage to be consistent with Taylor's data
+acs5_education <- acs5_education %>% 
+  select(-c(percent_estimate))
+```
+
+
+```{r}
+# Drop metro area and rename Name as metro_area
+acs5_education <- acs5_education %>% 
+  filter(education != "Total") %>%
+  select(-c(metropolitan_statistical_area_micropolitan_statistical_area)) %>% 
+  rename("metro_area" = NAME)
+```
+
+```{r}
+# Save it as a csv file
+write.csv(acs5_education, "data/acs_education_final.csv", row.names = FALSE)
+```
+
+### Cleaning race file from Taylor
+
+```{r}
+# Remove columns
+acs1_race <- acs1_race %>% 
+  select(-c("metropolitan_statistical_area_micropolitan_statistical_area", "Total", "GEO_ID"))
+```
+
+```{r}
+# Rename column
+acs1_race <- acs1_race %>% 
+  rename("metro_area" = NAME)
+```
+
+
+```{r}
+# Pivot the data on race
+acs1_race <- pivot_longer(
+  acs1_race,
+  cols = -"metro_area",
+  names_to = "race",
+  values_to = "estimate"
+)
+```
+
+```{r}
+# remove the ":" for the line "Two or more races:"
+acs1_race$race[acs1_race$race == "Two or more races:"] <- "Two or more races"
+
+```
+
+```{r}
+# Save it as a csv file
+write.csv(acs1_race, "data/acs_race_final.csv", row.names = FALSE)
+```
+
+### Cleaning the sex-age file from Taylor
+
+```{r}
+# Remove columns and rename column
+acs1_sex_age <- acs1_sex_age %>% 
+  select(-c("GEO_ID", "Total")) %>% 
+  rename("metro_area" = NAME)
+```
+
+```{r}
+acs1_sex_age <- pivot_longer(
+  acs1_sex_age,
+  cols = -"metro_area",
+  names_to = "sex_age",
+  values_to = "estimate"
+)
+```
+
+
+```{r}
+# Split the 'label' columns into 8 columns and keep the 'label' column
+acs1_sex_age <- acs1_sex_age %>%
+     separate(
+     sex_age,
+     c("sex", "age"),
+     sep = ":",
+     remove = TRUE,
+     convert = FALSE
+     )
+```
+
+```{r}
+# Put "none" in age column for rows without values
+acs1_sex_age$age[acs1_sex_age$age == ""] <- "none"
+```
+
+```{r}
+# Remove total values
+acs1_sex_age <- acs1_sex_age %>% 
+  filter(age != "none")
+```
+
+```{r}
+# Put back data wider to be able to sum age columns
+acs1_sex_age <- acs1_sex_age %>% 
+  pivot_wider(
+  id_cols = c("metro_area", "sex"), 
+  names_from = "age",
+  values_from = "estimate"
+)
+```
+
+```{r}
+# Sum age columns by age categories and remove other columns
+acs1_sex_age <- acs1_sex_age %>%
+  mutate(`Under 20 years` = `Under 5 years` + `5 to 9 years` + `10 to 14 years` + `15 to 17 years` + `18 and 19 years`,
+         `20 to 29 years` = `20 years` + `21 years` + `22 to 24 years` + `25 to 29 years`,
+         `30 to 39 years` = `30 to 34 years` + `35 to 39 years`,
+         `40 to 49 years` = `40 to 44 years` + `45 to 49 years`,
+         `50 to 59 years` = `50 to 54 years` + `55 to 59 years`,
+         `60 years and over` = `60 and 61 years` + `62 to 64 years` + `65 and 66 years` + `67 to 69 years` + `70 to 74 years` + `75 to 79 years` + `80 to 84 years` + `85 years and over`
+         ) %>% 
+select(c(`metro_area`, `sex`, `Under 20 years`, `20 to 29 years`, `30 to 39 years`, `40 to 49 years`, `50 to 59 years`, `60 years and over`))
+```
+
+```{r}
+# Pivot longer to be consistent with other data for the shiny app
+acs1_sex_age <- acs1_sex_age %>% 
+  pivot_longer(
+    cols = -c("metro_area", "sex"),
+    names_to = "age",
+    values_to = "estimate"
+  )
+```
+
+
+```{r}
+# Save it as a csv file
+write.csv(acs1_sex_age, "data/sex_by_age.csv", row.names = FALSE)
+```
+

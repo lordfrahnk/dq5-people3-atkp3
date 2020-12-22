@@ -1,0 +1,61 @@
+---
+title: "Notebook_pp3_alg_combining_variables"
+author: "Armelle Le Guelte"
+date: "12/15/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(dplyr)
+```
+
+
+```{r}
+acs1_race <-read_csv(('data/race.csv'))
+acs1_sex_age <- read_csv(('data/sex_by_age.csv'))
+acs5_sex_age_race <- read_csv('data/acs5y2018sex_age_race.csv')
+acs5_education <-read_csv(('data/acs5y2018education2.csv'))
+```
+
+```{r}
+geo_id_info <- acs1_race %>% 
+  select(-c("Total", "White alone", "Black or African American alone", "American Indian and Alaska Native alone", "Some other race alone", "Two or more races:", "Two races including Some other race", "Two races excluding Some other race, and three or more races", "Asian alone", "Native Hawaiian and Other Pacific Islander alone"))
+```
+
+```{r}
+# Join education with geo_id_info
+acs5_education <-
+        inner_join(acs5_education, geo_id_info, by = "metropolitan_statistical_area_micropolitan_statistical_area", copy = FALSE)
+```
+
+```{r}
+# Change total percentage for 100 because it the estimate number for some weird reason
+acs5_education$percent_estimate[acs5_education$percent_estimate > 100] <- 100
+
+```
+
+```{r}
+#Remove percentage to be consistent with Taylors data
+acs5_education <- acs5_education %>% 
+  select(-c(percent_estimate))
+```
+
+
+```{r}
+acs5_education <- pivot_wider(
+        acs5_education,
+        names_from = "education",
+        values_from = "estimate"
+)
+```
+
+```{r}
+
+```
+
+
